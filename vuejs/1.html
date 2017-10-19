@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        
+    </head>
+	<script type="text/javascript" src="vue.js"></script>
+	<!-- 对于 ajax 库(ajax libraries)和通用工具方法的集合(collections of general-purpose utility methods)来说， -->
+	<!-- 由于已经存在大量与其相关的生态系统， -->
+	<!-- 因此 Vue 核心无需重新创造，以保持轻量的文件体积。 -->
+	<!-- 同时这也可以使你自由随意地选择自己最熟悉的。 -->
+	<script src="axios.js"></script>
+	<script src="lodash.js"></script>
+	
+    <body>
+		
+		<div id="gaoxiao"></div>
+		<p><a href='javascript:void(0);' onclick='test()'>ajax</a></p>
+      <div id="app">
+	  所有支持的浏览器（IE9 及更高版本）之下表现一致<br/>
+	  {{ message }}<br>
+	  <span v-once>这里的值永远不会改变：{{ message }}</span><br>
+	  'Hello Vue!'.split('').reverse().join(''):====>{{ message.split('').reverse().join('') }}<br>
+	  {{reversedMessage}}<br>
+	  <div v-bind:id="message">222</div>
+	  <button v-bind:disabled="isButtonDisabled" v-on:click="buttonClick">Button</button>
+	  {{ list.a }}<br>
+	  {{ list.b }}<br>
+	  <input v-model="message"><br>
+	  <todo-item></todo-item>
+	  <!-- 完整语法 -->
+		<a v-bind:href="url">百度一下</a>
+		<!-- 简写 -->
+		<a :href="url">百度一下</a>
+		<!-- 完整语法 -->
+		<a href="javascript:void(0);" v-on:click="buttonClick">点击一下</a>
+		<!-- 简写 -->
+		<a href="javascript:void(0);" @click="buttonClick">点击一下</a><br>
+		
+		{{ fullName }}<br>
+		   <p>
+			问一个答案是 yes/no 的问题：
+			<input v-model="question">
+		  </p>
+		  <p>{{ answer }}</p>
+	</div>
+	<script>
+	// 定义一个被命名为 todo-item 的新组件,该组件必须在new Vue()之前使用
+	Vue.component('todo-item', {
+	  template: '<h1>这是一个 todo 项</h1>'
+	});
+	
+	var app = new Vue({
+	  el: '#app',
+	  data: {
+		message: 'Hello Vue!',
+		list:{a:1,b:null},
+		isButtonDisabled:false,
+		url:'htttp://www.baidu.com',
+		firstName: 'Foo',
+		lastName: 'Bar',
+		fullName: 'Foo Bar',
+		question: '',
+		answer: '你要先提出问题，我才能给你答案！'
+	  },
+	  methods:{
+		buttonClick:function(){
+			var r=confirm('是否还想继续操作?')
+			if(r==true)
+				app.isButtonDisabled = false				
+			else
+				app.isButtonDisabled = true
+		},
+		// _.debounce 是由 lodash 提供的函数，
+		// 在运行特别消耗性能的操作时，
+		// 可以使用 _.debounce 来限制频率。
+		// 在下面这种场景中，我们需要限制访问 yesno.wtf/api 的频率，
+		// 等到用户输入完毕之后，ajax 请求才会发出。
+		// 想要了解更多关于 _.debounce 函数（以及与它类似的 _.throttle）的详细信息，
+		// 请访问：https://lodash.com/docs#debounce
+		getAnswer: _.debounce(
+		  function () {
+			if (this.question.indexOf('？') === -1) {
+			  this.answer = '问题通常需要包含一个中文问号。'
+			  return
+			}
+			this.answer = '思考中……'
+			var vm = this
+			axios.get('https://yesno.wtf/api')
+			  .then(function (response) {
+				console.log(response)
+				vm.answer = _.capitalize(response.data.answer)
+			  })
+			  .catch(function (error) {
+				console.log(error)
+				vm.answer = '错误！API 无法处理。' + error
+			  })
+		  },
+		  // 这是用户停止输入操作后所等待的毫秒数。
+		  // （译者注：500毫秒之内，用户继续输入，则重新计时）
+		  5000
+		)
+	  },
+	  watch:{
+		isButtonDisabled: function (val, oldVal) {
+		  console.log('new: %s, old: %s', val, oldVal)
+		},
+		firstName: function (val) {
+		  this.fullName = val + ' ' + this.lastName
+		},
+		lastName: function (val) {
+		  this.fullName = this.firstName + ' ' + val
+		},
+		// 只要 question 发生改变，此函数就会执行
+		question: function (newQuestion) {
+		  this.answer = '等待输入停止……'
+		  this.getAnswer()
+		}
+	  },
+	  beforeCreate:function(){
+		console.info('new vue start');
+	  },
+	  created: function () {
+		// `this` 指向 vm 实例
+		console.info('message is: ' + this.message)
+	  },
+	  computed: {
+		// 一个 computed 属性的 getter 函数
+		reversedMessage: function () {
+		  // `this` 指向 vm 实例
+		  return this.message.split('').reverse().join('')
+		},
+		
+	  }
+	});
+	
+	function test(){
+		Ajax.get('https://yesno.wtf/api',function(data){
+			console.log(data,JSON.parse(data).image);
+			var gaoxiao = document.getElementById('gaoxiao');
+			var html = document.getElementById("gaoxiao").innerHTML;
+			document.getElementById("gaoxiao").innerHTML  = html+'<img src="'+JSON.parse(data).image+'" />'
+			
+		});
+	}
+	
+	var Ajax={
+		get: function(url, fn) {
+			var obj = new XMLHttpRequest();  // XMLHttpRequest对象用于在后台与服务器交换数据          
+			obj.open('GET', url, true);
+			obj.onreadystatechange = function() {
+				if (obj.readyState == 4 && obj.status == 200 || obj.status == 304) { // readyState == 4说明请求已完成
+					fn.call(this, obj.responseText);  //从服务器获得数据
+				}
+			};
+			obj.send();
+		},
+		post: function (url, data, fn) {         // datat应为'a=a1&b=b1'这种字符串格式，在jq里如果data为对象会自动将对象转成这种字符串格式
+			var obj = new XMLHttpRequest();
+			obj.open("POST", url, true);
+			obj.setRequestHeader("Content-type", "application/x-www-form-urlencoded");  // 添加http头，发送信息至服务器时内容编码类型
+			obj.onreadystatechange = function() {
+				if (obj.readyState == 4 && (obj.status == 200 || obj.status == 304)) {  // 304未修改
+					fn.call(this, obj.responseText);
+				}
+			};
+			obj.send(data);
+		}
+	}
+	</script>
+    </body>
+</html>
